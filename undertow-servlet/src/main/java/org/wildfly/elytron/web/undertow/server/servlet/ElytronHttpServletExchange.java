@@ -28,13 +28,16 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
+import javax.servlet.ServletInputStream;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
 import javax.servlet.http.HttpSession;
@@ -164,6 +167,19 @@ class ElytronHttpServletExchange extends ElytronHttpExchange {
             default:
                 return super.getScope(scope);
         }
+    }
+
+    @Override
+    public void setRequestInputStreamSupplier(Supplier<InputStream> requestInputStreamSupplier) {
+        final ServletRequestContext servletRequestContext = httpServerExchange.getAttachment(ServletRequestContext.ATTACHMENT_KEY);
+        ServletRequest servletRequest = servletRequestContext.getServletRequest();
+        servletRequestContext.setServletRequest(new HttpServletRequestWrapper((HttpServletRequest) servletRequest) {
+            @Override
+            public ServletInputStream getInputStream() {
+                return (ServletInputStream) requestInputStreamSupplier.get();
+            }
+        });
+
     }
 
     private static HttpScope applicationScope(HttpServerExchange exchange) {
